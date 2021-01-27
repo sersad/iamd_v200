@@ -1,4 +1,4 @@
-http://192.168.1.182//httpapi.asp?command=setPlayerCmd:play:http://nashe1.hostingradio.ru/nashe-256
+http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hostingradio.ru/nashe-256
 
 
 httpapi.asp?command=setPlayerCmd:play:  - вызов команды
@@ -8,70 +8,52 @@ http://1.stream.laut.fm/celtic-rock - адрес аудиопотока или �
 Остановка делается с помощью следующего запроса:
 http://172.16.1.11/httpapi.asp?command=setPlayerCmd:stop
 
+http://192.168.1.4/httpapi.asp?command=getPlayerStatus
 
-httpapi.asp?command=getPlayerStatus
 Выдает код в JSON, в котором при желании можно увидеть
 "status":"play","curpos":"28591" - статус и время в миллисекундах с начала воспроизведения.
 
 https://www.diyaudio.com/forums/class-d/302748-am-v200-wifi.html#post4964189
 
+https://enceintesetmusiques.com/forum/verdict-sur-le-fda-v200-1732
 
-#EXTM3U
-#EXTINF:0,Наше Радио
-http://variant.fm:8000/NASHE-192
-
-#EXTINF:0,Наше Радио 128
-http://nashe1.hostingradio.ru:80/nashe-128.mp3
-
-#EXTINF:2,НАШЕ Радио 256kbps
-http://nashe1.hostingradio.ru/nashe-256
-
-#EXTINF:0,Ретро FM
-http://retro256.streamr.ru
-
-#EXTINF:0,Радио Мелодия
-http://stream128.melodiafm.spb.ru:8000/melodia128
-
-#EXTINF:0,Легенды FM 192kbps
-http://live.legendy.by:8000/legendyfm
-
-#EXTINF:2,Сектор - 90s 192kbps
-http://89.223.45.5:8000/next-160
-
-#EXTINF:0,Radio Jazz
-http://nashe1.hostingradio.ru/jazz-128.mp3
-
-#EXTINF:0,Relax FM 32kbps
-http://ic7.101.ru:8000/a200
-
-#EXTINF:1,Romantika 256kbps
-http://ic4.101.ru:8000/v4_1
-
-#EXTINF:0,Просто Радио 128kbps
-http://89.254.163.122:8000/live
-
-#EXTINF:2,Rock FM 256kbps
-http://nashe1.hostingradio.ru/rock-256
-
-
-#EXTINF:0,Радио Шансон
-http://chanson.hostingradio.ru:8041/chanson256.mp3
-
-#EXTINF:0,HITFM Златоуст
-http://variant.fm:8000/RECORD-192
-
-#EXTINF:0,Ultra FM
-http://nashe1.hostingradio.ru/ultra-192.mp3
-
-#EXTINF:0,Свое радио
-http://source.hostingradio.ru:8010/svoe-320.mp3
-
-#EXTINF:-1,Radio Record (320kbps MP3)
-http://air.radiorecord.ru:8101/rr_320
-
-#EXTINF:0,bookradio
-http://bookradio.hostingradio.ru:8069/fm
-
-#EXTINF:0,Радио Юность
-http://icecast-vgtrk.cdnvideo.ru/unost_mp3_192kbps
-
+key_id_press:wps
+key_id_press:wpss
+GUARD_WPS_SERVER:1  GUARD_WPS_CANNEL
+key_id_press:PlayPause  /tmp/Requesta01controller
+setPlayerCmd:onepause
+key_id_press:prev
+setPlayerCmd:prev
+key_id_press:next
+setPlayerCmd:next
+key_id_press:key_circle
+setPlayerCmd:channel_next
+key_id_press:like
+setPlayerCmd:song_like
+MCUKeyShortClick:1  MCUKeyPlay  MCUKeyCircle--  MCUKeyCircle++
+setPlayerCmd:stop
+setPlayerCmd:pause  setPlayerCmd:resume setPlayerCmd:play
+setPlayerCmd:ext_getPlayStatus  setPlayerCmd:ext_getPlayMode
+ setPlayerCmd:ext_getLoopMode
+ key_id_press:mic
+ /tmp/RequestASRTTS  talkstart:0 talkstop
+ TtsTime TtsWeather  SetPresetNum:%d
+key_id_press:voldown
+setPlayerCmd:vol--  key_id_press:volup  setPlayerCmd:vol++  setPlayerCmd:slave_vol:%d
+setPlayerCmd:slave_mute:%d  key_id_press:mute
+setPlayerCmd:ext_vol_get
+setPlayerCmd:ext_mute_get
+setPlayerCmd:ext_slave_vol:%d
+setPlayerCmd:ext_slave_mute:%d  setPlayerCmd:switchmode:udisk
+setPlayerCmd:switchmode_by_mcu:wifi setPlayerCmd:switchmode_by_mcu:line-in  setPlayerCmd:switchmode_by_mcu:bluetooth
+setPlayerCmd:switchmode_by_mcu:optical  setPlayerCmd:switchmode_by_mcu:udisk
+setPlayerCmd:switchmode_by_mcu:mirror
+key_id_press:mode
+setPlayerCmd:switch_DAC_by_mcu:wifi 
+setPlayerCmd:switch_DAC_by_mcu:line-in  
+setPlayerCmd:switch_DAC_by_mcu:bluetooth
+setPlayerCmd:switch_DAC_by_mcu:optical  
+setPlayerCmd:switch_DAC_by_mcu:udisk
+setPlayerCmd:switch_DAC_by_mcu:mirror
+AirplayGet
+shutdown
