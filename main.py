@@ -6,24 +6,25 @@ from typing import Any, Dict
 import requests
 import configparser
 
-commands = {"play": "setPlayerCmd:play:",
-            "play_pause": "setPlayerCmd:onepause",
-            "stop": "setPlayerCmd:stop",
-            "next": "setPlayerCmd:next",
-            "pause": "setPlayerCmd:pause",
-            "vol_down": "setPlayerCmd:vol--",
-            "voldown": "key_id_press:voldown",
-            "vol_up": "setPlayerCmd:vol++",
-            "mute": "setPlayerCmd:mute:1",
-            "unmute": "setPlayerCmd:mute:0",
-            "channel_next": "setPlayerCmd:channel_next",
-            "shutdown": "shutdown",
-            "get_play_status": "setPlayerCmd:ext_getPlayStatus",
-            "get_player_status": "getPlayerStatus",
-            "vol_get": "setPlayerCmd:ext_vol_get",
-            "mute_get": "setPlayerCmd:mute_get",
-            "get_play_mode": "setPlayerCmd:ext_getPlayMode",
-            }
+commands = {
+    "play": "setPlayerCmd:play:",
+    "play_pause": "setPlayerCmd:onepause",
+    "stop": "setPlayerCmd:stop",
+    "next": "setPlayerCmd:next",
+    "pause": "setPlayerCmd:pause",
+    "vol_down": "setPlayerCmd:vol--",
+    "voldown": "key_id_press:voldown",
+    "vol_up": "setPlayerCmd:vol++",
+    "mute": "setPlayerCmd:mute:1",
+    "unmute": "setPlayerCmd:mute:0",
+    "channel_next": "setPlayerCmd:channel_next",
+    "shutdown": "shutdown",
+    "get_play_status": "setPlayerCmd:ext_getPlayStatus",
+    "get_player_status": "getPlayerStatus",
+    "vol_get": "setPlayerCmd:ext_vol_get",
+    "mute_get": "setPlayerCmd:mute_get",
+    "get_play_mode": "setPlayerCmd:ext_getPlayMode",
+}
 
 
 def get_config() -> dict:
@@ -38,10 +39,10 @@ def get_config() -> dict:
     cfg = configparser.ConfigParser()
 
     def write_file():
-        cfg.write(open('conf.ini', 'w'))
+        cfg.write(open("conf.ini", "w"))
 
     if not os.path.exists(config_path):
-        cfg["DEFAULT"] = {"server": '192.168.1.4', "url": "httpapi.asp?command="}
+        cfg["DEFAULT"] = {"server": "192.168.1.4", "url": "httpapi.asp?command="}
         write_file()
     try:
         cfg.read(config_path)
@@ -49,7 +50,7 @@ def get_config() -> dict:
         host["url"] = f'http://{host["ip"]}/{cfg.get("DEFAULT", "url")}'
     # except Exception as e:
     except configparser.NoOptionError:
-        cfg["DEFAULT"] = {"server": '192.168.1.4', "url": "httpapi.asp?command="}
+        cfg["DEFAULT"] = {"server": "192.168.1.4", "url": "httpapi.asp?command="}
         write_file()
         host["ip"] = cfg.get("DEFAULT", "server")
         host["url"] = f'http://{host["ip"]}/{cfg.get("DEFAULT", "url")}'
@@ -63,7 +64,7 @@ def set_player(url: str, command: str) -> Any:
     :param command: str
     :return: Any
     """
-    res = requests.post(url+command)
+    res = requests.post(url + command)
     if res.status_code == 200:
         return res.content
 
@@ -81,7 +82,7 @@ def get_player_status(url: str) -> Dict:
     :param url: str
     :return: Dict
     """
-    res = requests.get(url+commands["get_player_status"])
+    res = requests.get(url + commands["get_player_status"])
     if res.status_code == 200:
         result = res.json()
         print(bytes.fromhex(result["Artist"]).decode("utf-8"))
@@ -94,11 +95,12 @@ def main():
     host = get_config()
     url = host["url"]
     # print(get_player_status(url))
-    set_player(host["url"], commands["play"] + "http://nashe1.hostingradio.ru/nashe-256")
+    set_player(
+        host["url"], commands["play"] + "http://nashe1.hostingradio.ru/nashe-256"
+    )
     # print(set_player(url, "getStatus"))
     print(get_player_status(url))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
