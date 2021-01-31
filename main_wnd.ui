@@ -82,7 +82,7 @@
             <string/>
            </property>
            <property name="pixmap">
-            <pixmap>resurse/minus.png</pixmap>
+            <pixmap>resource/minus.png</pixmap>
            </property>
            <property name="scaledContents">
             <bool>true</bool>
@@ -111,7 +111,7 @@
             <string/>
            </property>
            <property name="pixmap">
-            <pixmap>resurse/plus.png</pixmap>
+            <pixmap>resource/plus.png</pixmap>
            </property>
            <property name="scaledContents">
             <bool>true</bool>
@@ -142,7 +142,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resurse/open.png</normaloff>resurse/open.png</iconset>
+             <normaloff>resource/open.png</normaloff>resource/open.png</iconset>
            </property>
           </widget>
          </item>
@@ -153,7 +153,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resurse/stop.png</normaloff>resurse/stop.png</iconset>
+             <normaloff>resource/stop.png</normaloff>resource/stop.png</iconset>
            </property>
           </widget>
          </item>
@@ -164,7 +164,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resurse/play.png</normaloff>resurse/play.png</iconset>
+             <normaloff>resource/play.png</normaloff>resource/play.png</iconset>
            </property>
           </widget>
          </item>
@@ -175,7 +175,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resurse/prev.png</normaloff>resurse/prev.png</iconset>
+             <normaloff>resource/prev.png</normaloff>resource/prev.png</iconset>
            </property>
           </widget>
          </item>
@@ -186,7 +186,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>resurse/next.png</normaloff>resurse/next.png</iconset>
+             <normaloff>resource/next.png</normaloff>resource/next.png</iconset>
            </property>
           </widget>
          </item>
@@ -256,7 +256,7 @@
           <string/>
          </property>
          <property name="pixmap">
-          <pixmap>resurse/no-image.jpg</pixmap>
+          <pixmap>resource/no-image.jpg</pixmap>
          </property>
          <property name="scaledContents">
           <bool>true</bool>
