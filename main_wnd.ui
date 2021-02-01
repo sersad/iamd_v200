@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Radio for amplifier I.AM.D v200</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="verticalLayoutWidget_2">

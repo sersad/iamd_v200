@@ -3,7 +3,7 @@ CREATE TABLE playlist (
                     UNIQUE,
     name    VARCHAR UNIQUE ON CONFLICT ROLLBACK,
     url     VARCHAR NOT NULL,
-    status  INTEGER    DEFAULT (False),
+    status  INTEGER    DEFAULT (1),
     bitrate INTEGER
 );
 
