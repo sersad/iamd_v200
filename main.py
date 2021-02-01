@@ -11,10 +11,19 @@ from PyQt5.QtWidgets import (
     QLabel,
     QAction,
 )
+
+
 from main_wnd import Ui_MainWindow
 from iamd import *
 import sqlite3
 import os.path
+# https://git.videolan.org/?p=vlc/bindings/python.git;a=tree;f=examples;hb=HEAD
+import vlc
+
+# https://wiki.python.org/moin/PyQt/Playing%20a%20sound%20with%20QtMultimedia
+
+url = "http://nashe1.hostingradio.ru/nashe-256"
+
 
 file_db_path = "resource/playlist.sqlite"
 file_db_blank = "resource/db_blank.sql"
@@ -61,12 +70,47 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.read_playlist()
 
+        # Define VLC player
+        instance = vlc.Instance('--input-repeat=-1', '--fullscreen')
+        self.player = instance.media_player_new()
+
+        #Define VLC media
+        media = instance.media_new(url)
+        #Set player media
+        self.player.set_media(media)
+        #Play the media
+        self.player.play()
+
+
+        # Регулировка громкости, работает только для локальногно воспроизведения
+        # На I.AM.D в силу схемотехники через WIFI громкость регулировать удаленно пока нет возможности.
+        self.VolumeSlider.setValue(self.player.audio_get_volume())
+        self.VolumeSlider.setProperty("value", 50)
+        self.set_volume(50)
+        self.VolumeSlider.setToolTip("Volume")
+        self.VolumeSlider.valueChanged.connect(self.set_volume)
+
+        # непонятно
+        # start with a callback
+        # em = self.player.event_manager()
+        # def call_vlc(self, player):
+        #     player.get_time()
+        #
+        # em.event_attach(vlc.EventType.MediaPlayerTimeChanged, call_vlc, self.player)
+
+
     def about(self) -> None:
         """
         Вызывает окно about
         :return: none
         """
         self.about_window.show()
+
+    def set_volume(self, volume):
+        """
+        Регулируем громкость
+        """
+        self.player.audio_set_volume(volume)
 
     def check_db(self) -> None:
         """
