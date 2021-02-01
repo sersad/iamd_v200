@@ -1,0 +1,37 @@
+CREATE TABLE playlist (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT
+                    UNIQUE,
+    name    VARCHAR UNIQUE ON CONFLICT ROLLBACK,
+    url     VARCHAR NOT NULL,
+    status  INTEGER    DEFAULT (False),
+    bitrate INTEGER
+);
+
+CREATE TABLE image (
+    id    INTEGER  REFERENCES playlist (id) ON DELETE CASCADE
+                                        ON UPDATE CASCADE,
+    image BLOB
+);
+
+
+INSERT INTO playlist (
+                         bitrate,
+                         status,
+                         url,
+                         name,
+                         id
+                     )
+                     VALUES (
+                         256,
+                         1,
+                         'http://nashe1.hostingradio.ru/nashe-256',
+                         'Наше Радио',
+                         1
+                     ),
+                     (
+                         256,
+                         1,
+                         'http://retro256.streamr.ru',
+                         'Ретро FM',
+                         2
+                     );
