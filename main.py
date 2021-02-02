@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import time
 
 from PyQt5 import QtGui
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -11,10 +13,11 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
-    QAction,
+    QAction, QMessageBox,
 )
 
-from PIL import Image
+from typing import Any
+
 
 from iamd import *
 import sqlite3
@@ -89,16 +92,11 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         super().__init__()
         self.setupUi(self)
+        self.playlist = []
+        self.track_number = 0
 
         # режим воспроизведения, по умолчанию локально
         self.local = True
-
-        self.track_number = 0
-
-        # !!!!!url по умолчнию, заменить на первый в плейлисте
-        self.url = url
-
-
 
         # о программе
         self.about_action = QAction(self)
@@ -107,7 +105,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
-        # диалог добавления записей
+        # !!!!диалог добавления записей
         self.add_dialog = AddWidget()
         self.OpenButton.clicked.connect(self.adding)
 
@@ -123,6 +121,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Define VLC player
         self.instance = vlc.Instance("--input-repeat=-1", "--fullscreen")
         self.player = self.instance.media_player_new()
+
+        # print(self.player.get_time()) # время
+        # print(self.player.audio_get_track_description()) # список tuple есть ли там инфа хоть у одной станции о стриме?
 
         # Play/Stop/Next/Prev/Local
         self.PlayButton.clicked.connect(self.play)
@@ -143,13 +144,43 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.VolumeSlider.setToolTip("Volume")
         self.VolumeSlider.valueChanged.connect(self.set_volume)
 
-        # непонятно
-        # start with a callback
-        # em = self.player.event_manager()
-        # def call_vlc(self, player):
-        #     player.get_time()
-        #
-        # em.event_attach(vlc.EventType.MediaPlayerTimeChanged, call_vlc, self.player)
+        # управление плейлистом, на одиночное и на двойное нажатие
+        self.PlayList.itemClicked.connect(self.playlist_clicked)
+        self.PlayList.itemDoubleClicked.connect(self.playlist_double_clicked)
+
+        # таймер раз в секунду,запускается при нажатии Play и останавливается по Stop
+        self.timer = QtCore.QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.update_time_label)
+
+    @QtCore.pyqtSlot()
+    def update_time_label(self) -> None:
+        """
+        Обновляет время проигрывания радио. Данные берутся с плеера.
+        :return: None
+        """
+        self.TimeLabel.display(time.strftime('%H:%M:%S', time.gmtime(self.player.get_time() // 1000)))
+
+    def playlist_clicked(self, item: Any) -> None:
+        """
+        На одиночное нажатие выбирает элемент из плейлиста
+        :param item: Any
+        :return: None
+        """
+        self.track_number = int(item.text().split(":")[0])
+        self.ImageLabel.setPixmap(self.playlist[self.track_number].get("image"))
+        # QMessageBox.information(self, "Info", item.text())
+
+    def playlist_double_clicked(self, item: Any):
+        print(type(item))
+        """
+        На двойной клик выбирает элемент из плейлиста и включает play
+        :param item: Any
+        :return: None
+        """
+        self.track_number = int(item.text().split(":")[0])
+        self.ImageLabel.setPixmap(self.playlist[self.track_number].get("image"))
+        self.play()
 
     def about(self) -> None:
         """
@@ -178,14 +209,15 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         Обработчик кнопки play
         :return: None
         """
-        self.set_track_name(self.url)
+        self.set_track_name()
         if self.local:
             # Define VLC media
-            media = self.instance.media_new(self.url)
+            media = self.instance.media_new(self.playlist[self.track_number]["url"])
             # Set player media
             self.player.set_media(media)
             # Play the media
             self.player.play()
+            self.timer.start()
         else:
             pass
 
@@ -197,6 +229,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.set_track_name("Stoped")
         if self.local:
             self.player.stop()
+            self.timer.stop()
         else:
             pass
 
@@ -205,24 +238,26 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         Следующее радио
         :return: None
         """
-        if self.local:
-            pass
-        else:
-            pass
+        if self.track_number < len(self.playlist) - 1:
+            self.track_number += 1
+            self.change_row_playlist(self.track_number)
+            if self.player.is_playing():
+                self.play()
 
     def prev_url(self) -> None:
         """
         Предыдущее радио
         :return: None
         """
-        if self.local:
-            pass
-        else:
-            pass
+        if self.track_number > 0:
+            self.track_number -= 1
+            self.change_row_playlist(self.track_number)
+            if self.player.is_playing():
+                self.play()
 
     def radio_on_clicked(self) -> None:
         """
-        обработчик режима воспроизведения
+        Обработчик режима воспроизведения
         :return: None
         """
         if self.RadioBtnGroup.checkedButton().objectName() == "LocalButton":
@@ -254,42 +289,46 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.connection.commit()
 
     def set_track_name(self, name=""):
-        self.TrackName.setText(
-            f"{self.playlist[self.track_number]['name']} - "
-            f"{self.playlist[self.track_number]['url']} - "
-            f"{self.playlist[self.track_number]['bitrate']}kbps")
+        if name:
+            self.TrackName.setText(name)
+        else:
+            self.TrackName.setText(
+                f"{self.playlist[self.track_number]['name']} - "
+                f"{self.playlist[self.track_number]['url']} - "
+                f"{self.playlist[self.track_number]['bitrate']}kbps")
 
     def read_playlist(self) -> None:
         """
-        Читает плейлист из базы в память ввиде списка словарей
+        Читает плейлист из базы в память в виде списка словарей
         :return: None
         """
-        self.playlist = []
-        query = """SELECT "playlist".id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
-         FROM playlist, image WHERE playlist.id = image.id"""
+        query = """SELECT playlist.id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
+         FROM playlist, image WHERE playlist.id = image.id ORDER BY playlist.name ASC"""
         res = self.connection.cursor().execute(query).fetchall()
         for n, name, url, status, bitrate, image in res:
             qimg = QtGui.QImage.fromData(image)
             pixmap = QtGui.QPixmap.fromImage(qimg)
             self.playlist.append({"name": name,
-                                  "n": n,
                                   "url": url,
                                   "bitrate": bitrate,
                                   "status": status,
                                   "image": pixmap})
 
-            # qimg = QtGui.QImage.fromData(image)
-            # pixmap = QtGui.QPixmap.fromImage(qimg)
-            # self.ImageLabel.setPixmap(pixmap)
-
-    def fill_playlist(self, track_number: int = 0) -> None:
+    def fill_playlist(self) -> None:
         """
         Заполняет первоначально плейлист
-        :param track_number: int
-        :return:
+        :return: None
         """
-        for i in self.playlist:
-            self.PlayList.addItem(f"{i['n']}: {i['name']} - {i['bitrate']}kbps")
+        for n, i in enumerate(self.playlist):
+            self.PlayList.addItem(f"{n}: {i['name']} - {i['bitrate']}kbps")
+        self.change_row_playlist(self.track_number)
+
+    def change_row_playlist(self, track_number: int = 0) -> None:
+        """
+        Меняет ячейку в плейлисте
+        :param track_number: int
+        :return: None
+        """
         self.ImageLabel.setPixmap(self.playlist[track_number].get("image"))
         self.PlayList.setCurrentRow(track_number)
 
