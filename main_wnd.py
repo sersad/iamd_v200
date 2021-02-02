@@ -156,7 +156,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "Radio for amplifier I.AM.D v200"))
         self.TrackName.setText(_translate("MainWindow", "TrackName"))
         self.LocalButton.setText(_translate("MainWindow", "Local"))
-        self.RadioButton.setText(_translate("MainWindow", "imad200"))
+        self.RadioButton.setText(_translate("MainWindow", "I.AM.D v200"))
         self.OpenButton.setText(_translate("MainWindow", "Open"))
         self.StopButton.setText(_translate("MainWindow", "Stop"))
         self.PlayButton.setText(_translate("MainWindow", "Play"))

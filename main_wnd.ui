@@ -63,7 +63,7 @@
          <item>
           <widget class="QRadioButton" name="RadioButton">
            <property name="text">
-            <string>imad200</string>
+            <string>I.AM.D v200</string>
            </property>
            <attribute name="buttonGroup">
             <string notr="true">RadioBtnGroup</string>

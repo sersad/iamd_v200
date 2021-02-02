@@ -3,3 +3,4 @@ configparser
 pyqt5
 pyqt5-stubs
 python-vlc
+Pillow

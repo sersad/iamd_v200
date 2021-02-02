@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+
+from PyQt5 import QtGui
 from PyQt5.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -12,15 +14,18 @@ from PyQt5.QtWidgets import (
     QAction,
 )
 
+from PIL import Image
 
-from main_wnd import Ui_MainWindow
 from iamd import *
 import sqlite3
 import os.path
+
 # https://git.videolan.org/?p=vlc/bindings/python.git;a=tree;f=examples;hb=HEAD
 import vlc
-
 # https://wiki.python.org/moin/PyQt/Playing%20a%20sound%20with%20QtMultimedia
+
+from main_wnd import Ui_MainWindow
+from form_add import Ui_Form
 
 url = "http://nashe1.hostingradio.ru/nashe-256"
 
@@ -49,6 +54,34 @@ class AboutWindow(QWidget):
         self.layout().addWidget(self.info)
 
 
+class AddWidget(QMainWindow, Ui_Form):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # self.con = sqlite3.connect("films.db")
+        # self.params = {}
+        # self.setupUi(self)
+        # self.selectGenres()
+        # self.pushButton.clicked.connect(self.add_elem)
+
+    def selectGenres(self):
+        pass
+        # req = "SELECT * from genres"
+        # cur = self.con.cursor()
+        # for value, key in cur.execute(req).fetchall():
+        #     self.params[key] = value
+        # self.comboBox.addItems(list(self.params.keys()))
+
+    def add_elem(self):
+        pass
+        # cur = self.con.cursor()
+        # id_off = cur.execute("SELECT max(id) FROM films").fetchone()[0]
+        # new_data = (id_off + 1, self.title.toPlainText(), int(self.year.toPlainText()),
+        #             self.params.get(self.comboBox.currentText()), int(self.duration.toPlainText()))
+        # cur.execute("INSERT INTO films VALUES (?,?,?,?,?)", new_data)
+        # self.con.commit()
+        # self.close()
+
+
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         """
@@ -57,6 +90,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
+        # режим воспроизведения, по умолчанию локально
+        self.local = True
+
+        self.track_number = 0
+
+        # !!!!!url по умолчнию, заменить на первый в плейлисте
+        self.url = url
+
+
+
         # о программе
         self.about_action = QAction(self)
         self.about_action.setText("О программе")
@@ -64,26 +107,36 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
+        # диалог добавления записей
+        self.add_dialog = AddWidget()
+        self.OpenButton.clicked.connect(self.adding)
+
         # коннект к БД и запуск проверки целостности БД
         self.connection = sqlite3.connect(file_db_path)
         self.check_db()
 
+        # чтение плейлиста
         self.read_playlist()
+        self.fill_playlist()
+        self.set_track_name()
 
         # Define VLC player
-        instance = vlc.Instance('--input-repeat=-1', '--fullscreen')
-        self.player = instance.media_player_new()
+        self.instance = vlc.Instance("--input-repeat=-1", "--fullscreen")
+        self.player = self.instance.media_player_new()
 
-        #Define VLC media
-        media = instance.media_new(url)
-        #Set player media
-        self.player.set_media(media)
-        #Play the media
-        self.player.play()
+        # Play/Stop/Next/Prev/Local
+        self.PlayButton.clicked.connect(self.play)
+        self.StopButton.clicked.connect(self.stop)
+        self.NextButton.clicked.connect(self.next_url)
+        self.PrevButton.clicked.connect(self.prev_url)
+        self.RadioBtnGroup.buttonToggled.connect(self.radio_on_clicked)
 
-
-        # Регулировка громкости, работает только для локальногно воспроизведения
-        # На I.AM.D в силу схемотехники через WIFI громкость регулировать удаленно пока нет возможности.
+        # Регулировка громкости, работает только для локального воспроизведения
+        # На I.AM.D в силу схемотехники включения интерфейса WIFI к усилителю по цифровой шине
+        # громкость регулировать невозможно, так как в DSP не заходит сигнал громкости
+        # модуль регулирует громкость, но на громкости воспроизведения это не отражается
+        # Возможно через ssh можно попытаться регулировать громксть, но это очень медленно и не надежно
+        # управление громкости с панели усилителя или с пульта работает.
         self.VolumeSlider.setValue(self.player.audio_get_volume())
         self.VolumeSlider.setProperty("value", 50)
         self.set_volume(50)
@@ -98,7 +151,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         #
         # em.event_attach(vlc.EventType.MediaPlayerTimeChanged, call_vlc, self.player)
 
-
     def about(self) -> None:
         """
         Вызывает окно about
@@ -106,11 +158,79 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         self.about_window.show()
 
-    def set_volume(self, volume):
+    def adding(self) -> None:
         """
-        Регулируем громкость
+        Открывает диалог добавления записей в плейлисты
+        :return: None
+        """
+        self.add_dialog.show()
+
+    def set_volume(self, volume: int) -> None:
+        """
+        Регулирует громкость
+        :param volume: int
+        :return: None
         """
         self.player.audio_set_volume(volume)
+
+    def play(self) -> None:
+        """
+        Обработчик кнопки play
+        :return: None
+        """
+        self.set_track_name(self.url)
+        if self.local:
+            # Define VLC media
+            media = self.instance.media_new(self.url)
+            # Set player media
+            self.player.set_media(media)
+            # Play the media
+            self.player.play()
+        else:
+            pass
+
+    def stop(self) -> None:
+        """
+        Обработчик кнопки stop
+        :return: None
+        """
+        self.set_track_name("Stoped")
+        if self.local:
+            self.player.stop()
+        else:
+            pass
+
+    def next_url(self) -> None:
+        """
+        Следующее радио
+        :return: None
+        """
+        if self.local:
+            pass
+        else:
+            pass
+
+    def prev_url(self) -> None:
+        """
+        Предыдущее радио
+        :return: None
+        """
+        if self.local:
+            pass
+        else:
+            pass
+
+    def radio_on_clicked(self) -> None:
+        """
+        обработчик режима воспроизведения
+        :return: None
+        """
+        if self.RadioBtnGroup.checkedButton().objectName() == "LocalButton":
+            self.local = True
+            self.play()
+        else:
+            self.stop()
+            self.local = False
 
     def check_db(self) -> None:
         """
@@ -133,19 +253,45 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             _ = [cursor.execute(query.strip()) for query in res if res]
             self.connection.commit()
 
-    def read_playlist(self):
-        query = """SELECT playlist.id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
+    def set_track_name(self, name=""):
+        self.TrackName.setText(
+            f"{self.playlist[self.track_number]['name']} - "
+            f"{self.playlist[self.track_number]['url']} - "
+            f"{self.playlist[self.track_number]['bitrate']}kbps")
+
+    def read_playlist(self) -> None:
+        """
+        Читает плейлист из базы в память ввиде списка словарей
+        :return: None
+        """
+        self.playlist = []
+        query = """SELECT "playlist".id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
          FROM playlist, image WHERE playlist.id = image.id"""
         res = self.connection.cursor().execute(query).fetchall()
         for n, name, url, status, bitrate, image in res:
-            self.PlayList.addItem(f"{name} - {bitrate} kbps - {url}")
-        # self.tableWidget.setColumnCount(4)
-        # self.tableWidget.setRowCount(0)
-        # # Заполняем таблицу элементами
-        # for i, row in enumerate(res):
-        #     self.tableWidget.setRowCount(self.tableWidget.rowCount() + 1)
-        #     for j, elem in enumerate(row):
-        #         self.tableWidget.setItem(i, j, QTableWidgetItem(str(elem)))
+            qimg = QtGui.QImage.fromData(image)
+            pixmap = QtGui.QPixmap.fromImage(qimg)
+            self.playlist.append({"name": name,
+                                  "n": n,
+                                  "url": url,
+                                  "bitrate": bitrate,
+                                  "status": status,
+                                  "image": pixmap})
+
+            # qimg = QtGui.QImage.fromData(image)
+            # pixmap = QtGui.QPixmap.fromImage(qimg)
+            # self.ImageLabel.setPixmap(pixmap)
+
+    def fill_playlist(self, track_number: int = 0) -> None:
+        """
+        Заполняет первоначально плейлист
+        :param track_number: int
+        :return:
+        """
+        for i in self.playlist:
+            self.PlayList.addItem(f"{i['n']}: {i['name']} - {i['bitrate']}kbps")
+        self.ImageLabel.setPixmap(self.playlist[track_number].get("image"))
+        self.PlayList.setCurrentRow(track_number)
 
 
 def except_hook(cls, exception, traceback):
