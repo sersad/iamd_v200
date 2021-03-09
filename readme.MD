@@ -41,13 +41,13 @@ http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hosting
 * Так как в теме PyQT мы показываем работу с БД в качестве источника хранения плейлистов используется БД, хотя это и выглядит нелогичным и лишним
   
 * Стандартная библиотека sqlite3 не используется, а используется pysqlite3-binary, так как в последней возможно UPSERT (sqlite3 это тоже возможно, но только в версиях выше 3.24.0, в тех версиях Python что я пробовал, этой версии еще нет)
-со старой библиотекой не проходит sql `ON CONFLICT`
-  ```python
-  query = f"""INSERT INTO playlist (name, bitrate, status, url)
-  VALUES ('{name}', {bitrate}, 1, '{url}') 
+со старой библиотекой не проходит sql `ON CONFLICT() DO`
+  ```sqlite
+  INSERT INTO playlist (name, bitrate, status, url)
+  VALUES ('Наше Радио', 256, 1, 'http://nashe1.hostingradio.ru/nashe-256') 
   ON CONFLICT(name) DO 
-  UPDATE SET name='{name}', bitrate={bitrate}, url='{url}' 
-  WHERE name = '{name}';"""
+  UPDATE SET name='Наше Радио', bitrate=256, url='http://nashe1.hostingradio.ru/nashe-256}' 
+  WHERE name = 'Наше Радио';
 
 * БД при запуске проверяется, и если её нет или она по какой-то причине не возвращает адекватынй результат (испорчена) она будет создана с нуля по файлу `resource/db_blank.sql`
   
@@ -68,6 +68,12 @@ http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hosting
   
 * Регулировка громкости возможно только когда играет радио локально (причины описаны выше)
 
+
+## Видео работы приложения
+
+[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://youtu.be/dQw4w9WgXcQ)
+
+[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://youtu.be/dQw4w9WgXcQ)
 
   
 
