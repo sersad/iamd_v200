@@ -294,7 +294,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # iamd commands
         self.host = get_config()
         self.iamd_status()
-        self.statusbar.actionEvent().connect(self.test)
 
     @QtCore.pyqtSlot()
     def update_time_label(self) -> None:
