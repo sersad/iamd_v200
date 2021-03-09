@@ -1,6 +1,9 @@
-requests
-configparser
-pyqt5
+requests~=2.25.1
+configparser~=5.0.1
+pyqt5~=5.15.2
 pyqt5-stubs
 python-vlc
 Pillow
+pysqlite3-binary
+chardet~=4.0.0
+pysqlite3~=0.4.5

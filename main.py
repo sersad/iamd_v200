@@ -1,40 +1,42 @@
 # -*- coding: utf-8 -*-
-
+import logging
+import os.path
 import sys
 import time
 
-from PyQt5 import QtGui
+# https://git.videolan.org/?p=vlc/bindings/python.git;a=tree;f=examples;hb=HEAD
+import vlc
+
+# import sqlite3
+# UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
+# full work in pysqlite3-binary
+import pysqlite3 as sqlite3
+
 from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow,
     QApplication,
     QTableWidgetItem,
-    QHeaderView,
     QWidget,
     QVBoxLayout,
     QLabel,
-    QAction, QMessageBox,
+    QAction, QMessageBox, QFileDialog,
 )
 
-from typing import Any
-
-
-from iamd import *
-import sqlite3
-import os.path
-
-# https://git.videolan.org/?p=vlc/bindings/python.git;a=tree;f=examples;hb=HEAD
-import vlc
-# https://wiki.python.org/moin/PyQt/Playing%20a%20sound%20with%20QtMultimedia
-
-from main_wnd import Ui_MainWindow
 from form_add import Ui_Form
+from iamd import *
+from main_wnd import Ui_MainWindow
 
-url = "http://nashe1.hostingradio.ru/nashe-256"
+# https://wiki.python.org/moin/PyQt/Playing%20a%20sound%20with%20QtMultimedia
 
 
 file_db_path = "resource/playlist.sqlite"
 file_db_blank = "resource/db_blank.sql"
+
+logging.basicConfig(level=logging.WARNING)
 
 
 class AboutWindow(QWidget):
@@ -58,41 +60,178 @@ class AboutWindow(QWidget):
 
 
 class AddWidget(QMainWindow, Ui_Form):
-    def __init__(self, parent=None):
+    # кастомный сигнал для отлавливания закрытия окна
+    signalExit = pyqtSignal()
+
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        # self.con = sqlite3.connect("films.db")
-        # self.params = {}
-        # self.setupUi(self)
-        # self.selectGenres()
-        # self.pushButton.clicked.connect(self.add_elem)
+        self.setupUi(self)
+        self.con = sqlite3.connect(file_db_path)
+        self.cur = self.con.cursor()
+        self.modified = {}
+        self.titles = None
+        self.show_table()
+        self.pushButtonAdd.clicked.connect(self.add_row)
+        self.pushButtonDelete.clicked.connect(self.delete_row)
+        self.pushButtonAddImage.clicked.connect(self.file_dialog)
+        self.tableWidget.itemChanged.connect(self.item_changed)
+        self.tableWidget.itemClicked.connect(self.show_items)
+        self.binary_image = None
 
-    def selectGenres(self):
-        pass
-        # req = "SELECT * from genres"
-        # cur = self.con.cursor()
-        # for value, key in cur.execute(req).fetchall():
-        #     self.params[key] = value
-        # self.comboBox.addItems(list(self.params.keys()))
+    def file_dialog(self) -> None:
+        """
+        Диалоговое окно для выбора иконки радиостанции
+        :return:
+        """
+        file = QFileDialog.getOpenFileName(self, "Открыть изображение", ".")[0]
+        with open(file, 'rb') as file:
+            binary_data = file.read()
+        self.binary_image = binary_data
 
-    def add_elem(self):
-        pass
-        # cur = self.con.cursor()
-        # id_off = cur.execute("SELECT max(id) FROM films").fetchone()[0]
-        # new_data = (id_off + 1, self.title.toPlainText(), int(self.year.toPlainText()),
-        #             self.params.get(self.comboBox.currentText()), int(self.duration.toPlainText()))
-        # cur.execute("INSERT INTO films VALUES (?,?,?,?,?)", new_data)
-        # self.con.commit()
-        # self.close()
+    def add_row(self) -> None:
+        """
+        WARNING!!!
+        UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04).
+        :return:
+        """
+        name = self.lineEditName.text()
+        url = self.lineEditURL.text()
+        bitrate = self.lineEditBitrate.text() if self.lineEditBitrate.text() else 0
+        if not name:
+            self.labelName.setStyleSheet("background-color: red")
+            return None
+        if not url:
+            self.labelURL.setStyleSheet("background-color: red")
+            return None
+
+        self.labelName.setStyleSheet("background-color: None")
+        self.labelURL.setStyleSheet("background-color: None")
+        query = f"""INSERT INTO playlist (name, bitrate, status, url)
+            VALUES ('{name}', {bitrate}, 1, '{url}') 
+            ON CONFLICT(name) DO 
+            UPDATE SET name='{name}', bitrate={bitrate}, url='{url}' 
+            WHERE name = '{name}';"""
+        try:
+            self.cur.execute(query)
+            # получаем id последней вставки
+            id_ = self.cur.execute("""SELECT last_insert_rowid();""").fetchone()[0]
+            # если изображение было выбрано то добавляем его в таблицу
+            if self.binary_image:
+                query = "INSERT INTO image (id, image) VALUES (?, ?);"
+                self.cur.execute(query, (id_, self.binary_image))
+            else:
+                query = "INSERT INTO image (id) VALUES (?);"
+                self.cur.execute(query, (id_,))
+            self.con.commit()
+        except Exception as e:
+            logging.error(f"Произошла ошибка при добавлении строки\n{query}\n{e}")
+        self.show_table()
+
+    def delete_row(self) -> None:
+        """
+        Удаление строк
+        :return:
+        """
+        # Получаем список элементов без повторов и их id
+        rows = list(set([i.row() for i in self.tableWidget.selectedItems()]))
+        ids = [self.tableWidget.item(i, 0).text() for i in rows]
+        # Спрашиваем у пользователя подтверждение на удаление элементов
+        valid = QMessageBox.question(
+            self, '', "Действительно удалить элементы с id " + ",".join(ids),
+            QMessageBox.Yes, QMessageBox.No)
+        # Если пользователь ответил утвердительно, удаляем элементы.
+        if valid == QMessageBox.Yes:
+            try:
+                cur = self.con.cursor()
+                ids = ", ".join(ids)
+                cur.execute(f"""DELETE FROM playlist WHERE id IN ({ids})""")
+                cur.execute(f"""DELETE FROM image WHERE id IN ({ids})""")
+                self.con.commit()
+            except Exception as e:
+                logging.error(
+                    f"Произошла ошибка при попытке удаления строк\n"
+                    f"DELETE FROM playlist WHERE id IN ({ids}\n"
+                    f"DELETE FROM image WHERE id IN ({ids}\n{e}")
+        # обновляем tableWidget
+        self.show_table()
+
+    def item_changed(self, item) -> None:
+        """
+        Отслеживаем изменения в tableWidget
+        :param item:
+        :return:
+        """
+        self.modified["id"] = self.tableWidget.item(item.row(), 0).text()
+        # Если значение в ячейке было изменено,
+        # то в словарь записывается пара: название поля, новое значение
+        self.modified[self.titles[item.column()]] = item.text()
+        self.save_results()
+
+    def show_items(self) -> None:
+        """
+        Заполняет LineEdit выбранной строчкой
+        :return:
+        """
+        row_number = self.tableWidget.selectedIndexes()[0].row()
+        id = self.tableWidget.item(row_number, 0).text()
+        result = self.cur.execute(f"SELECT id, name, url, bitrate FROM playlist WHERE id = {id}").fetchone()
+        self.lineEditName.setText(result[1])
+        self.lineEditURL.setText(result[2])
+        self.lineEditBitrate.setText(str(result[3]))
+
+    def show_table(self) -> None:
+        """
+        Заполняет таблицу в редакторе плейлиста
+        :return: None
+        """
+        result = self.cur.execute("SELECT id, name, url, bitrate FROM playlist").fetchall()
+        self.tableWidget.setRowCount(len(result))
+        self.tableWidget.setColumnCount(len(result[0]))
+        self.tableWidget.setColumnWidth(0, 0)
+        self.tableWidget.setColumnWidth(1, 220)
+        self.tableWidget.setColumnWidth(2, 500)
+        self.tableWidget.setColumnWidth(3, 30)
+        self.tableWidget.setHorizontalHeaderLabels(("", "Имя", "URL", "Bps"))
+        self.titles = [description[0] for description in self.cur.description]
+        for i, elem in enumerate(result):
+            for j, val in enumerate(elem):
+                self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
+        self.modified = {}
+
+    def save_results(self) -> None:
+        """
+        Сохраняет таблицу при прямом изменении в таблице строки
+        :return:
+        """
+        if self.modified and any(key for key in self.modified.keys() if key != "id"):
+            query = "UPDATE playlist SET\n"
+            query += ", ".join([f"{key}='{self.modified.get(key)}'"
+                                for key in self.modified.keys() if key != "id"])
+            query += " WHERE id = " + self.modified["id"]
+            logging.info(f"save_results query\n{query}")
+            self.cur.execute(query)
+            self.con.commit()
+            self.modified.clear()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """
+        При закрытии окна посsлаем сигнал в основное окно для пересчитывания плейлиста
+        :param event: QCloseEvent
+        :return: None
+        """
+        self.signalExit.emit()
 
 
 class MyWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self):
+
+    def __init__(self) -> None:
         """
         Конструктор класса
         """
         super().__init__()
         self.setupUi(self)
         self.playlist = []
+        self.add_dialog = None
         self.track_number = 0
 
         # режим воспроизведения, по умолчанию локально
@@ -105,16 +244,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
-        # !!!!диалог добавления записей
+        # диалог добавления записей
         self.add_dialog = AddWidget()
         self.OpenButton.clicked.connect(self.adding)
+        self.add_dialog.signalExit.connect(self.fill_playlist)
 
         # коннект к БД и запуск проверки целостности БД
         self.connection = sqlite3.connect(file_db_path)
         self.check_db()
 
         # чтение плейлиста
-        self.read_playlist()
         self.fill_playlist()
         self.set_track_name()
 
@@ -161,6 +300,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         self.TimeLabel.display(time.strftime('%H:%M:%S', time.gmtime(self.player.get_time() // 1000)))
 
+    def adding(self) -> None:
+        """
+        Открывает диалог добавления записей в плейлисты
+        диалоговое окно посылает сигнал о своем закрытии для обновления плейлиста
+        :return: None
+        """
+        self.add_dialog.show()
+
     def playlist_clicked(self, item: Any) -> None:
         """
         На одиночное нажатие выбирает элемент из плейлиста
@@ -169,10 +316,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         self.track_number = int(item.text().split(":")[0])
         self.ImageLabel.setPixmap(self.playlist[self.track_number].get("image"))
-        # QMessageBox.information(self, "Info", item.text())
 
-    def playlist_double_clicked(self, item: Any):
-        print(type(item))
+    def playlist_double_clicked(self, item: Any) -> None:
         """
         На двойной клик выбирает элемент из плейлиста и включает play
         :param item: Any
@@ -188,13 +333,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         :return: none
         """
         self.about_window.show()
-
-    def adding(self) -> None:
-        """
-        Открывает диалог добавления записей в плейлисты
-        :return: None
-        """
-        self.add_dialog.show()
 
     def set_volume(self, volume: int) -> None:
         """
@@ -284,11 +422,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             cursor = self.connection.cursor()
             with open(file_db_blank) as file:
                 res = " ".join(file.readlines()).split(";")
-                print(res)
+                logging.info(res)
             _ = [cursor.execute(query.strip()) for query in res if res]
             self.connection.commit()
 
-    def set_track_name(self, name=""):
+    def set_track_name(self, name: str = "") -> None:
+        """
+        Показывает имя радиостанции
+        :param name:
+        :return:
+        """
         if name:
             self.TrackName.setText(name)
         else:
@@ -302,23 +445,30 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         Читает плейлист из базы в память в виде списка словарей
         :return: None
         """
-        query = """SELECT playlist.id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
-         FROM playlist, image WHERE playlist.id = image.id ORDER BY playlist.name ASC"""
-        res = self.connection.cursor().execute(query).fetchall()
-        for n, name, url, status, bitrate, image in res:
-            qimg = QtGui.QImage.fromData(image)
-            pixmap = QtGui.QPixmap.fromImage(qimg)
-            self.playlist.append({"name": name,
-                                  "url": url,
-                                  "bitrate": bitrate,
-                                  "status": status,
-                                  "image": pixmap})
+        self.playlist = []
+        try:
+            query = """SELECT playlist.id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
+             FROM playlist, image WHERE playlist.id = image.id ORDER BY playlist.name ASC"""
+            res = self.connection.cursor().execute(query).fetchall()
+            for n, name, url, status, bitrate, image in res:
+                qimg = QtGui.QImage.fromData(image)
+                pixmap = QtGui.QPixmap.fromImage(qimg)
+                self.playlist.append({"name": name,
+                                      "url": url,
+                                      "bitrate": bitrate,
+                                      "status": status,
+                                      "image": pixmap})
+        except:
+            raise Exception("Неизвестная jшибка чтения плейлиста, удалите файл базы и "
+                            "он будет создан автоматически при следующем запуске")
 
     def fill_playlist(self) -> None:
         """
-        Заполняет первоначально плейлист
+        Заполняет плейлист
         :return: None
         """
+        self.read_playlist()
+        self.PlayList.clear()
         for n, i in enumerate(self.playlist):
             self.PlayList.addItem(f"{n}: {i['name']} - {i['bitrate']}kbps")
         self.change_row_playlist(self.track_number)
@@ -329,8 +479,11 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         :param track_number: int
         :return: None
         """
-        self.ImageLabel.setPixmap(self.playlist[track_number].get("image"))
-        self.PlayList.setCurrentRow(track_number)
+        try:
+            self.ImageLabel.setPixmap(self.playlist[track_number].get("image"))
+            self.PlayList.setCurrentRow(track_number)
+        except IndexError:
+            pass
 
 
 def except_hook(cls, exception, traceback):
