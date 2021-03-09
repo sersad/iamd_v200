@@ -1,10 +1,9 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
 import os.path
 import sys
 import time
-
-
 import vlc
 
 # import sqlite3

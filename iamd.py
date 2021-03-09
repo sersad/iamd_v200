@@ -3,14 +3,10 @@
 import logging
 import os
 from typing import Any, Dict
-
 import requests
 import configparser
 
-from requests import ReadTimeout
-
 logging.basicConfig(level=logging.WARNING)
-
 
 # Рабочие команды на усилителе
 # реально полезных тут только 3
