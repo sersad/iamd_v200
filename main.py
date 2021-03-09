@@ -30,8 +30,7 @@ from form_add import Ui_Form
 from iamd import *
 from main_wnd import Ui_MainWindow
 
-# https://wiki.python.org/moin/PyQt/Playing%20a%20sound%20with%20QtMultimedia
-
+from iamd import commands, get_config, set_player, get_player_status
 
 file_db_path = "resource/playlist.sqlite"
 file_db_blank = "resource/db_blank.sql"
@@ -231,11 +230,11 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
         self.playlist = []
-        self.add_dialog = None
         self.track_number = 0
 
         # режим воспроизведения, по умолчанию локально
         self.local = True
+        self.iamd_is_playing = False
 
         # о программе
         self.about_action = QAction(self)
@@ -244,7 +243,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
-        # диалог добавления записей
+        # диалог редактирования плейлиста
         self.add_dialog = AddWidget()
         self.OpenButton.clicked.connect(self.adding)
         self.add_dialog.signalExit.connect(self.fill_playlist)
@@ -292,13 +291,24 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.update_time_label)
 
+        # iamd commands
+        self.host = get_config()
+        self.iamd_status()
+        self.statusbar.actionEvent().connect(self.test)
+
     @QtCore.pyqtSlot()
     def update_time_label(self) -> None:
         """
-        Обновляет время проигрывания радио. Данные берутся с плеера.
+        Обновляет время проигрывания радио. Данные берутся с плеера или усилителя
+        Для плеера раз в 1 сек, для усилителя раз в 10 сек
         :return: None
         """
-        self.TimeLabel.display(time.strftime('%H:%M:%S', time.gmtime(self.player.get_time() // 1000)))
+        if self.local:
+            self.timer.setInterval(1000)
+            self.TimeLabel.display(time.strftime('%H:%M:%S', time.gmtime(self.player.get_time() // 1000)))
+        else:
+            self.timer.setInterval(10000)
+            self.iamd_status()
 
     def adding(self) -> None:
         """
@@ -357,7 +367,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.player.play()
             self.timer.start()
         else:
-            pass
+            set_player(self.host["url"],
+                       commands["play"] + self.playlist[self.track_number]["url"])
+            self.timer.start()
 
     def stop(self) -> None:
         """
@@ -369,7 +381,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.player.stop()
             self.timer.stop()
         else:
-            pass
+            set_player(self.host["url"], commands["stop"])
+            self.iamd_is_playing = False
+            self.timer.stop()
 
     def next_url(self) -> None:
         """
@@ -379,7 +393,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         if self.track_number < len(self.playlist) - 1:
             self.track_number += 1
             self.change_row_playlist(self.track_number)
-            if self.player.is_playing():
+            if self.player.is_playing() and self.local:
+                self.play()
+            elif not self.local:
                 self.play()
 
     def prev_url(self) -> None:
@@ -390,7 +406,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         if self.track_number > 0:
             self.track_number -= 1
             self.change_row_playlist(self.track_number)
-            if self.player.is_playing():
+            if self.player.is_playing() and self.local:
+                self.play()
+            elif not self.local:
                 self.play()
 
     def radio_on_clicked(self) -> None:
@@ -399,11 +417,15 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         :return: None
         """
         if self.RadioBtnGroup.checkedButton().objectName() == "LocalButton":
+            self.stop()
             self.local = True
             self.play()
         else:
-            self.stop()
-            self.local = False
+            if self.player.is_playing():
+                self.local = False
+                self.play()
+            else:
+                self.local = False
 
     def check_db(self) -> None:
         """
@@ -459,7 +481,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                                       "status": status,
                                       "image": pixmap})
         except:
-            raise Exception("Неизвестная jшибка чтения плейлиста, удалите файл базы и "
+            raise Exception("Неизвестная ошибка чтения плейлиста, удалите файл базы и "
                             "он будет создан автоматически при следующем запуске")
 
     def fill_playlist(self) -> None:
@@ -485,6 +507,28 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         except IndexError:
             pass
 
+    def iamd_status(self) -> None:
+        """
+        Получение статуса с усилителя
+        :return:
+        """
+        res = get_player_status(self.host["url"])
+        if not res:
+            self.statusbar.setStyleSheet("background-color: #FFDDDD")
+            self.statusbar.showMessage(f"IAMD amplifier ip: {self.host['ip']} not available")
+        else:
+            if res["status"] == "play":
+                self.iamd_is_playing = True
+                self.local = False
+                self.RadioButton.setChecked(True)
+                self.timer.start()
+            else:
+                self.iamd_is_playing = False
+            self.statusbar.setStyleSheet("background-color: None")
+            self.statusbar.showMessage(f"IAMD({self.host['ip']}) {res['status']} "
+                                       f"Artist:{res['artist']} Title: {res['title']}")
+            self.TimeLabel.display(time.strftime('%H:%M:%S', time.gmtime(res["curpos"] // 1000)))
+
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
@@ -495,3 +539,4 @@ if __name__ == "__main__":
     ex = MyWindow()
     ex.show()
     sys.exit(app.exec())
+

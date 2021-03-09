@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 import os
 from typing import Any, Dict
 
 import requests
 import configparser
 
+from requests import ReadTimeout
+
+logging.basicConfig(level=logging.WARNING)
+
+
+# Рабочие команды на усилителе
+# реально полезных тут только 3
 commands = {
     "play": "setPlayerCmd:play:",
     "play_pause": "setPlayerCmd:onepause",
@@ -53,7 +61,7 @@ def get_config() -> dict:
         cfg["DEFAULT"] = {"server": "192.168.1.4", "url": "httpapi.asp?command="}
         write_file()
         host["ip"] = cfg.get("DEFAULT", "server")
-        host["url"] = f'http://{host["ip"]}/{cfg.get("DEFAULT", "url")}'
+        host["url"] = f'http://{host["ip"].strip()}/{cfg.get("DEFAULT", "url").strip()}'
     return host
 
 
@@ -64,42 +72,49 @@ def set_player(url: str, command: str) -> Any:
     :param command: str
     :return: Any
     """
-    res = requests.post(url + command)
-    if res.status_code == 200:
-        return res.content
+    logging.info(f"send to IAMD command {url+command}")
+    try:
+        res = requests.get(url + command, timeout=5)
+        if res.status_code == 200:
+            return res.content
+    except Exception as e:
+        logging.error(f"Error set_player IAMD ({url+command})\n({e})")
 
 
 def get_player_status(url: str) -> Dict:
     """
-    TODO: надо сделать словарь только нужного status vol mute curpos totlen Title Album Artist
-    есть еще команда getStatus
-    Получение статуса пример ответа
+    Получение статуса усилителя
+    пример ответа:
     {'type': '0', 'ch': '0', 'mode': '10', 'loop': '0', 'eq': '0', 'status': 'play', 'curpos': '786542',
     'totlen': '0', 'Title': 'http://nashe1.hostingradio.ru/nashe-256', 'Artist': '556E6B6E6F776E',
      'Album': '556E6B6E6F776E', 'alarmflag': '0', 'plicount': '0',
      'plicurr': '0', 'vol': '100', 'mute': '0'}
-
     :param url: str
     :return: Dict
     """
-    res = requests.get(url + commands["get_player_status"])
-    if res.status_code == 200:
-        result = res.json()
-        print(bytes.fromhex(result["Artist"]).decode("utf-8"))
-        print(result["Title"])
-        print(bytes.fromhex(result["Album"]).decode("utf-8"))
-        # return
+    try:
+        res = requests.get(url + commands["get_player_status"], timeout=2)
+        if res.status_code == 200:
+            result = res.json()
+            status = {"artist": bytes.fromhex(result["Artist"]).decode("utf-8"),
+                      "title": result["Title"],
+                      "album": bytes.fromhex(result["Album"]).decode("utf-8"),
+                      "curpos": int(result["curpos"]),
+                      "status": result["status"]}
+            return status
+    except Exception as e:
+        logging.error(f"Error get status IAMD ({url})\n({e})")
 
 
 def main():
+    """
+    Используется только для отладки API
+    :return:
+    """
     host = get_config()
-    url = host["url"]
-    # print(get_player_status(url))
-    set_player(
-        host["url"], commands["play"] + "http://nashe1.hostingradio.ru/nashe-256"
-    )
-    # print(set_player(url, "getStatus"))
-    print(get_player_status(url))
+    # set_player(host["url"], commands["play"] + "http://nashe1.hostingradio.ru/nashe-256")
+    print(set_player(host["url"], "getStatus"))
+    print(get_player_status(host["url"]))
 
 
 if __name__ == "__main__":
