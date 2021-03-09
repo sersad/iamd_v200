@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.WARNING)
 class AboutWindow(QWidget):
     """
     TODO: Написать о программе
-    ВИджет About
+    Виджет About
     """
 
     def __init__(self):
@@ -50,10 +50,13 @@ class AboutWindow(QWidget):
         self.setLayout(QVBoxLayout(self))
         self.info = QLabel(self)
         self.info.setText(
-            """Инфа о плеере
-            потом надо написать
-            много строчек и зачем это нужно
-            и то что аналогов нет"""
+            """Радио для усилителя IAMD v200.
+Для демонстрации возможностей, можно 
+слушать радио локально, через устройство
+вывода звука по умолчанию.
+Плейлисты и иконки хранятся в sqlite базе
+Подробности в readme.MD или 
+<a href=https://github.com/sersad/iamd_v200>на github</a> """
         )
         self.layout().addWidget(self.info)
 
