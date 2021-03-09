@@ -19,11 +19,13 @@ _____
 
 Так как этот усилитель достаточно редкий и проверить проект захочется в живую, в нем реализована возможность проигрывать радио локально через устройство воспроизведения по умолчанию.
 Так как я заклятый "linuxоид" то собрать готовый пакет по widows не смогу из-за отсутствия оной, а бинарник linux мало кому нужен. 
+____
 [:arrow_up:Оглавление](#Оглавление)
 
 ## Внешний вид
 ![Alt-текст](https://github.com/sersad/iamd_v200/blob/3c860a99389b32bab8be9123ab4edf626b04c2d3/docs/IMG_20180329_111747_HDR.jpg?raw=true "Внешний вид выкл")
 ![Alt-текст](https://github.com/sersad/iamd_v200/blob/3c860a99389b32bab8be9123ab4edf626b04c2d3/docs/IMG_20180329_112004_HDR.jpg?raw=true "Внешний вид вкл")
+____
 [:arrow_up:Оглавление](#Оглавление)
 
 ## API усилителя
@@ -35,6 +37,7 @@ _____
 http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hostingradio.ru/nashe-256
 ```
 Весь список команд приведет в API, но реально нужно play, stop, get_player_status. Остальные могут понадобиться для проигрывания материалов например через DLNA.
+____
 [:arrow_up:Оглавление](#Оглавление)
 
 ## Особенности проекта
@@ -78,11 +81,13 @@ http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hosting
   ![Alt-текст](https://github.com/sersad/iamd_v200/blob/b537a1efe2c11ea9e1d2429db0a42654603c1d29/docs/iamd_status.png?raw=true "статус усилителя")
   
 * Регулировка громкости возможно только когда играет радио локально (причины описаны выше)
+____
 [:arrow_up:Оглавление](#Оглавление)
 
 ## Видео работы приложения
 
 [![Watch the video](https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg)](https://youtu.be/dQw4w9WgXcQ)
+____
 [:arrow_up:Оглавление](#Оглавление)
   
 
