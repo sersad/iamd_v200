@@ -5,11 +5,14 @@ import os.path
 import sys
 import time
 import vlc
+import platform
 
-# import sqlite3
-# UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
-# full work in pysqlite3-binary
-import pysqlite3 as sqlite3
+if platform.system().lower() == 'linux':
+    # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
+    # full work in pysqlite3-binary
+    import pysqlite3 as sqlite3
+else:
+    import sqlite3
 
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -39,10 +42,8 @@ logging.basicConfig(level=logging.WARNING)
 
 class AboutWindow(QWidget):
     """
-    TODO: Написать о программе
     Виджет About
     """
-
     def __init__(self):
         super(AboutWindow, self).__init__()
         self.setWindowTitle("О программе")
@@ -54,8 +55,7 @@ class AboutWindow(QWidget):
 слушать радио локально, через устройство
 вывода звука по умолчанию.
 Плейлисты и иконки хранятся в sqlite базе
-Подробности в readme.MD или 
-<a href=https://github.com/sersad/iamd_v200>на github</a> """
+Подробности в readme.MD"""
         )
         self.layout().addWidget(self.info)
 
