@@ -7,6 +7,7 @@ import time
 import vlc
 import platform
 
+# sql library depending on os platform
 if platform.system().lower() == 'linux':
     # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
     # full work in pysqlite3-binary
