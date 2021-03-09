@@ -71,9 +71,7 @@ http://192.168.1.182/httpapi.asp?command=setPlayerCmd:play:http://nashe1.hosting
 
 ## Видео работы приложения
 
-[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://youtu.be/dQw4w9WgXcQ)
-
-[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://youtu.be/dQw4w9WgXcQ)
+[![Watch the video](https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg)](https://youtu.be/dQw4w9WgXcQ)
 
   
 
