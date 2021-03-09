@@ -4,7 +4,7 @@ import os.path
 import sys
 import time
 
-# https://git.videolan.org/?p=vlc/bindings/python.git;a=tree;f=examples;hb=HEAD
+
 import vlc
 
 # import sqlite3
@@ -217,7 +217,7 @@ class AddWidget(QMainWindow, Ui_Form):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """
-        При закрытии окна посsлаем сигнал в основное окно для пересчитывания плейлиста
+        При закрытии окна посылаем сигнал в основное окно для пересчитывания плейлиста
         :param event: QCloseEvent
         :return: None
         """
@@ -289,7 +289,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.PlayList.itemClicked.connect(self.playlist_clicked)
         self.PlayList.itemDoubleClicked.connect(self.playlist_double_clicked)
 
-        # таймер раз в секунду,запускается при нажатии Play и останавливается по Stop
+        # таймер запускается при нажатии Play и останавливается по Stop
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.update_time_label)
@@ -303,6 +303,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         Обновляет время проигрывания радио. Данные берутся с плеера или усилителя
         Для плеера раз в 1 сек, для усилителя раз в 10 сек
+        Для усилителя так же обновляется статус бар
         :return: None
         """
         if self.local:
@@ -483,7 +484,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                                       "status": status,
                                       "image": pixmap})
         except:
-            raise Exception("Неизвестная ошибка чтения плейлиста, удалите файл базы и "
+            raise Exception("Неизвестная ошибка чтения плейлиста, удалите файл базы resource/playlist.sqlite и "
                             "он будет создан автоматически при следующем запуске")
 
     def fill_playlist(self) -> None:
