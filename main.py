@@ -147,8 +147,8 @@ class AddWidget(QMainWindow, Ui_Form):
         self.tableWidget.setRowCount(len(result))
         self.tableWidget.setColumnCount(4)
         self.tableWidget.setColumnWidth(0, 0)
-        self.tableWidget.setColumnWidth(1, 220)
-        self.tableWidget.setColumnWidth(2, 500)
+        self.tableWidget.setColumnWidth(1, 215)
+        self.tableWidget.setColumnWidth(2, 470)
         self.tableWidget.setColumnWidth(3, 30)
         self.tableWidget.setHorizontalHeaderLabels(("", "Имя", "URL", "Bps"))
         self.titles = ['id', 'name', 'url', 'bitrate']

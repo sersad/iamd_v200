@@ -92,7 +92,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.PlayButton)
         self.PrevButton = QtWidgets.QPushButton(self.verticalLayoutWidget_2)
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("img/prev.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(QtGui.QPixmap("ui/img/prev.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.PrevButton.setIcon(icon3)
         self.PrevButton.setObjectName("PrevButton")
         self.horizontalLayout.addWidget(self.PrevButton)
