@@ -92,8 +92,7 @@ class AddWidget(QMainWindow, Ui_Form):
 
     def add_row(self) -> None:
         """
-        WARNING!!!
-        UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04).
+        Добавляет строку плейлиста
         :return:
         """
         name = self.lineEditName.text()
