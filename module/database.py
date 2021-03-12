@@ -9,7 +9,7 @@ script_dir = os.path.dirname(__file__)
 file_db_path = os.path.join(script_dir, "../resource/playlist.sqlite")
 file_db_blank = os.path.join(script_dir, "../resource/db_blank.sql")
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 
 
 def db_connect() -> Tuple[Any, Any]:

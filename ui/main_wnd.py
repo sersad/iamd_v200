@@ -126,7 +126,7 @@ class Ui_MainWindow(object):
         self.ImageLabel.setSizePolicy(sizePolicy)
         self.ImageLabel.setMaximumSize(QtCore.QSize(150, 150))
         self.ImageLabel.setText("")
-        self.ImageLabel.setPixmap(QtGui.QPixmap("../resource/no-image.jpg"))
+        self.ImageLabel.setPixmap(QtGui.QPixmap("../docs/no-image.jpg"))
         self.ImageLabel.setScaledContents(True)
         self.ImageLabel.setObjectName("ImageLabel")
         self.horizontalLayout_3.addWidget(self.ImageLabel)

@@ -6,7 +6,7 @@ from typing import Any, Dict
 import requests
 import configparser
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 
 # Рабочие команды на усилителе
 # реально полезных тут только 3

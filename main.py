@@ -23,7 +23,7 @@ from ui.main_wnd import Ui_MainWindow
 from module.iamd import commands, get_config, set_player, get_player_status
 from module.database import db_add_row, db_delete_row, db_show_items, db_show_table, check_db, db_update_row
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 
 
 class AboutWindow(QWidget):
