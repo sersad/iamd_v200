@@ -96,8 +96,8 @@ def db_delete_row(ids: list) -> None:
 def db_show_items(id_: int) -> Dict[str, int]:
     """
     Возвращает строчку из плейлиста
-    :param id: id плейлиста
-    :type id: int
+    :param id_: id плейлиста
+    :type id_: int
     :return:
     :rtype: Dict[str, int]
     """
@@ -111,8 +111,7 @@ def db_show_items(id_: int) -> Dict[str, int]:
                 'bitrate': result[3]}
     except Exception as e:
         logging.error(
-            f"Произошла ошибка при извлечении строки\n"
-            f"{query}\n"
+            f"Произошла ошибка при извлечении строки по id={id_}\n"
             f"({e})")
 
 
@@ -143,6 +142,23 @@ def db_show_table() -> List[Dict[str, Any]]:
                         "он будет создан автоматически при следующем запуске")
 
 
+def db_update_row(modified: dict) -> None:
+    """
+    Обновляет строку при прямом редактировани таблицы
+    :param modified:
+    :type modified:
+    :return:
+    """
+    con, cur = db_connect()
+    query = "UPDATE playlist SET\n"
+    query += ", ".join([f"{key}='{modified.get(key)}'"
+                        for key in modified.keys() if key != "id"])
+    query += " WHERE id = " + modified["id"]
+    logging.info(f"save_results query\n{query}")
+    cur.execute(query)
+    con.commit()
+
+
 def check_db() -> None:
     """
     Проверяет что База работает. Если не работает или битая, удаляет файл и создает снова чистую базу
@@ -166,7 +182,6 @@ def check_db() -> None:
         _ = [cur.execute(query.strip()) for query in res if res]
         con.commit()
         logging.warning(f"Creating new DB")
-
 
 
 def main():

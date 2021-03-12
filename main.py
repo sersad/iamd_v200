@@ -8,7 +8,7 @@ import vlc
 import platform
 
 # sql library depending on os platform
-from module.database import db_connect, db_add_row, db_delete_row, db_show_items, db_show_table, check_db
+from module.database import db_connect, db_add_row, db_delete_row, db_show_items, db_show_table, check_db, db_update_row
 
 # if platform.system().lower() == 'linux':
 #     # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
@@ -71,8 +71,6 @@ class AddWidget(QMainWindow, Ui_Form):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setupUi(self)
-        self.con = sqlite3.connect(file_db_path)
-        self.cur = self.con.cursor()
         self.modified = {}
         self.titles = None
         self.show_table()
@@ -163,18 +161,20 @@ class AddWidget(QMainWindow, Ui_Form):
         Заполняет таблицу в редакторе плейлиста
         :return: None
         """
-        result = self.cur.execute("SELECT id, name, url, bitrate FROM playlist").fetchall()
+        result = db_show_table()
         self.tableWidget.setRowCount(len(result))
-        self.tableWidget.setColumnCount(len(result[0]))
+        self.tableWidget.setColumnCount(4)
         self.tableWidget.setColumnWidth(0, 0)
         self.tableWidget.setColumnWidth(1, 220)
         self.tableWidget.setColumnWidth(2, 500)
         self.tableWidget.setColumnWidth(3, 30)
         self.tableWidget.setHorizontalHeaderLabels(("", "Имя", "URL", "Bps"))
-        self.titles = [description[0] for description in self.cur.description]
+        self.titles = ['id', 'name', 'url', 'bitrate']
         for i, elem in enumerate(result):
-            for j, val in enumerate(elem):
-                self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
+            self.tableWidget.setItem(i, 0, QTableWidgetItem(str(result[i]['id'])))
+            self.tableWidget.setItem(i, 1, QTableWidgetItem(result[i]['name']))
+            self.tableWidget.setItem(i, 2, QTableWidgetItem(result[i]['url']))
+            self.tableWidget.setItem(i, 3, QTableWidgetItem(str(result[i]['bitrate'])))
         self.modified = {}
 
     def save_results(self) -> None:
@@ -183,13 +183,7 @@ class AddWidget(QMainWindow, Ui_Form):
         :return:
         """
         if self.modified and any(key for key in self.modified.keys() if key != "id"):
-            query = "UPDATE playlist SET\n"
-            query += ", ".join([f"{key}='{self.modified.get(key)}'"
-                                for key in self.modified.keys() if key != "id"])
-            query += " WHERE id = " + self.modified["id"]
-            logging.info(f"save_results query\n{query}")
-            self.cur.execute(query)
-            self.con.commit()
+            db_update_row(self.modified)
             self.modified.clear()
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -223,8 +217,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
-        # коннект к БД и запуск проверки целостности БД
-        self.connection = sqlite3.connect(file_db_path)
+        # проверки целостности БД
         check_db()
 
         # диалог редактирования плейлиста
@@ -406,27 +399,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                 self.play()
             else:
                 self.local = False
-
-    # def check_db(self) -> None:
-    #     """
-    #     Проверяет что База работает. Если не работает или битая, удаляет файл и создает снова чистую базу
-    #     Пример пустой базы в виде SQL команд в file_db_blank
-    #     :return: None
-    #     """
-    #     query = """SELECT * FROM playlist, image WHERE playlist.id = image.id"""
-    #     try:
-    #         self.connection.cursor().execute(query).fetchall()
-    #     except:
-    #         if os.path.exists(file_db_path):
-    #             os.remove(file_db_path)
-    #             sqlite3.connect(file_db_path)
-    #             self.connection = sqlite3.connect(file_db_path)
-    #         cursor = self.connection.cursor()
-    #         with open(file_db_blank) as file:
-    #             res = " ".join(file.readlines()).split(";")
-    #             logging.info(res)
-    #         _ = [cursor.execute(query.strip()) for query in res if res]
-    #         self.connection.commit()
 
     def set_track_name(self, name: str = "") -> None:
         """
