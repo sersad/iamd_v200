@@ -39,11 +39,11 @@ def get_config() -> dict:
     """
     host = {}
     base_path = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(base_path, "conf.ini")
+    config_path = os.path.join(base_path, "../conf.ini")
     cfg = configparser.ConfigParser()
 
     def write_file():
-        cfg.write(open("conf.ini", "w"))
+        cfg.write(open("../conf.ini", "w"))
 
     if not os.path.exists(config_path):
         cfg["DEFAULT"] = {"server": "192.168.1.4", "url": "httpapi.asp?command="}

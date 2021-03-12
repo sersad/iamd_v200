@@ -1,24 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
-import os.path
 import sys
 import time
 import vlc
-import platform
-
-# sql library depending on os platform
-from module.database import db_connect, db_add_row, db_delete_row, db_show_items, db_show_table, check_db, db_update_row
-
-# if platform.system().lower() == 'linux':
-#     # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
-#     # full work in pysqlite3-binary
-#     import pysqlite3 as sqlite3
-# else:
-import sqlite3
-
 from PyQt5 import QtCore
-from PyQt5 import QtGui
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
@@ -31,14 +16,12 @@ from PyQt5.QtWidgets import (
     QAction, QMessageBox, QFileDialog,
 )
 
-from form_add import Ui_Form
-from iamd import *
-from main_wnd import Ui_MainWindow
+from ui.form_add import Ui_Form
+from module.iamd import *
+from ui.main_wnd import Ui_MainWindow
 
-from iamd import commands, get_config, set_player, get_player_status
-
-file_db_path = "resource/playlist.sqlite"
-file_db_blank = "resource/db_blank.sql"
+from module.iamd import commands, get_config, set_player, get_player_status
+from module.database import db_add_row, db_delete_row, db_show_items, db_show_table, check_db, db_update_row
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -232,9 +215,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Define VLC player
         self.instance = vlc.Instance("--input-repeat=-1", "--fullscreen")
         self.player = self.instance.media_player_new()
-
-        # print(self.player.get_time()) # время
-        # print(self.player.audio_get_track_description()) # список tuple есть ли там инфа хоть у одной станции о стриме?
 
         # Play/Stop/Next/Prev/Local
         self.PlayButton.clicked.connect(self.play)
