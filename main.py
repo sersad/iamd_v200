@@ -8,12 +8,14 @@ import vlc
 import platform
 
 # sql library depending on os platform
-if platform.system().lower() == 'linux':
-    # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
-    # full work in pysqlite3-binary
-    import pysqlite3 as sqlite3
-else:
-    import sqlite3
+from module.database import db_connect, db_add_row, db_delete_row, db_show_items, db_show_table, check_db
+
+# if platform.system().lower() == 'linux':
+#     # UPSERT syntax was added to SQLite with version 3.24.0 (2018-06-04)
+#     # full work in pysqlite3-binary
+#     import pysqlite3 as sqlite3
+# else:
+import sqlite3
 
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -45,6 +47,7 @@ class AboutWindow(QWidget):
     """
     Виджет About
     """
+
     def __init__(self):
         super(AboutWindow, self).__init__()
         self.setWindowTitle("О программе")
@@ -98,6 +101,7 @@ class AddWidget(QMainWindow, Ui_Form):
         name = self.lineEditName.text()
         url = self.lineEditURL.text()
         bitrate = self.lineEditBitrate.text() if self.lineEditBitrate.text() else 0
+        # если ошибка при вводе посвечиваем поле
         if not name:
             self.labelName.setStyleSheet("background-color: red")
             return None
@@ -107,25 +111,9 @@ class AddWidget(QMainWindow, Ui_Form):
 
         self.labelName.setStyleSheet("background-color: None")
         self.labelURL.setStyleSheet("background-color: None")
-        query = f"""INSERT INTO playlist (name, bitrate, status, url)
-            VALUES ('{name}', {bitrate}, 1, '{url}') 
-            ON CONFLICT(name) DO 
-            UPDATE SET name='{name}', bitrate={bitrate}, url='{url}' 
-            WHERE name = '{name}';"""
-        try:
-            self.cur.execute(query)
-            # получаем id последней вставки
-            id_ = self.cur.execute("""SELECT last_insert_rowid();""").fetchone()[0]
-            # если изображение было выбрано то добавляем его в таблицу
-            if self.binary_image:
-                query = "INSERT INTO image (id, image) VALUES (?, ?);"
-                self.cur.execute(query, (id_, self.binary_image))
-            else:
-                query = "INSERT INTO image (id) VALUES (?);"
-                self.cur.execute(query, (id_,))
-            self.con.commit()
-        except Exception as e:
-            logging.error(f"Произошла ошибка при добавлении строки\n{query}\n{e}")
+        db_add_row(name, url, bitrate, self.binary_image)
+        # послед добавление сбрасываем image
+        self.binary_image = None
         self.show_table()
 
     def delete_row(self) -> None:
@@ -142,17 +130,7 @@ class AddWidget(QMainWindow, Ui_Form):
             QMessageBox.Yes, QMessageBox.No)
         # Если пользователь ответил утвердительно, удаляем элементы.
         if valid == QMessageBox.Yes:
-            try:
-                cur = self.con.cursor()
-                ids = ", ".join(ids)
-                cur.execute(f"""DELETE FROM playlist WHERE id IN ({ids})""")
-                cur.execute(f"""DELETE FROM image WHERE id IN ({ids})""")
-                self.con.commit()
-            except Exception as e:
-                logging.error(
-                    f"Произошла ошибка при попытке удаления строк\n"
-                    f"DELETE FROM playlist WHERE id IN ({ids}\n"
-                    f"DELETE FROM image WHERE id IN ({ids}\n{e}")
+            db_delete_row(ids)
         # обновляем tableWidget
         self.show_table()
 
@@ -174,11 +152,11 @@ class AddWidget(QMainWindow, Ui_Form):
         :return:
         """
         row_number = self.tableWidget.selectedIndexes()[0].row()
-        id = self.tableWidget.item(row_number, 0).text()
-        result = self.cur.execute(f"SELECT id, name, url, bitrate FROM playlist WHERE id = {id}").fetchone()
-        self.lineEditName.setText(result[1])
-        self.lineEditURL.setText(result[2])
-        self.lineEditBitrate.setText(str(result[3]))
+        id_ = self.tableWidget.item(row_number, 0).text()
+        result = db_show_items(id_)
+        self.lineEditName.setText(result['name'])
+        self.lineEditURL.setText(result['url'])
+        self.lineEditBitrate.setText(str(result['bitrate']))
 
     def show_table(self) -> None:
         """
@@ -245,14 +223,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.menuBar().addAction(self.about_action)
         self.about_window = AboutWindow()
 
+        # коннект к БД и запуск проверки целостности БД
+        self.connection = sqlite3.connect(file_db_path)
+        check_db()
+
         # диалог редактирования плейлиста
         self.add_dialog = AddWidget()
         self.OpenButton.clicked.connect(self.adding)
         self.add_dialog.signalExit.connect(self.fill_playlist)
-
-        # коннект к БД и запуск проверки целостности БД
-        self.connection = sqlite3.connect(file_db_path)
-        self.check_db()
 
         # чтение плейлиста
         self.fill_playlist()
@@ -429,26 +407,26 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             else:
                 self.local = False
 
-    def check_db(self) -> None:
-        """
-        Проверяет что База работает. Если не работает или битая, удаляет файл и создает снова чистую базу
-        Пример пустой базы в виде SQL команд в file_db_blank
-        :return: None
-        """
-        query = """SELECT * FROM playlist, image WHERE playlist.id = image.id"""
-        try:
-            self.connection.cursor().execute(query).fetchall()
-        except:
-            if os.path.exists(file_db_path):
-                os.remove(file_db_path)
-                sqlite3.connect(file_db_path)
-                self.connection = sqlite3.connect(file_db_path)
-            cursor = self.connection.cursor()
-            with open(file_db_blank) as file:
-                res = " ".join(file.readlines()).split(";")
-                logging.info(res)
-            _ = [cursor.execute(query.strip()) for query in res if res]
-            self.connection.commit()
+    # def check_db(self) -> None:
+    #     """
+    #     Проверяет что База работает. Если не работает или битая, удаляет файл и создает снова чистую базу
+    #     Пример пустой базы в виде SQL команд в file_db_blank
+    #     :return: None
+    #     """
+    #     query = """SELECT * FROM playlist, image WHERE playlist.id = image.id"""
+    #     try:
+    #         self.connection.cursor().execute(query).fetchall()
+    #     except:
+    #         if os.path.exists(file_db_path):
+    #             os.remove(file_db_path)
+    #             sqlite3.connect(file_db_path)
+    #             self.connection = sqlite3.connect(file_db_path)
+    #         cursor = self.connection.cursor()
+    #         with open(file_db_blank) as file:
+    #             res = " ".join(file.readlines()).split(";")
+    #             logging.info(res)
+    #         _ = [cursor.execute(query.strip()) for query in res if res]
+    #         self.connection.commit()
 
     def set_track_name(self, name: str = "") -> None:
         """
@@ -469,22 +447,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         Читает плейлист из базы в память в виде списка словарей
         :return: None
         """
-        self.playlist = []
-        try:
-            query = """SELECT playlist.id, playlist.name, playlist.url, playlist.status, playlist.bitrate, image.image
-             FROM playlist, image WHERE playlist.id = image.id ORDER BY playlist.name ASC"""
-            res = self.connection.cursor().execute(query).fetchall()
-            for n, name, url, status, bitrate, image in res:
-                qimg = QtGui.QImage.fromData(image)
-                pixmap = QtGui.QPixmap.fromImage(qimg)
-                self.playlist.append({"name": name,
-                                      "url": url,
-                                      "bitrate": bitrate,
-                                      "status": status,
-                                      "image": pixmap})
-        except:
-            raise Exception("Неизвестная ошибка чтения плейлиста, удалите файл базы resource/playlist.sqlite и "
-                            "он будет создан автоматически при следующем запуске")
+        self.playlist = db_show_table()
 
     def fill_playlist(self) -> None:
         """
@@ -541,4 +504,3 @@ if __name__ == "__main__":
     ex = MyWindow()
     ex.show()
     sys.exit(app.exec())
-

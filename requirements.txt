@@ -5,4 +5,4 @@ pyqt5-stubs
 python-vlc
 pillow
 chardet~=4.0.0
-pysqlite3~=0.4.5
+pysqlite3-binary~=0.4.5
