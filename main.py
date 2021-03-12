@@ -30,7 +30,6 @@ class AboutWindow(QWidget):
     """
     Виджет About
     """
-
     def __init__(self):
         super(AboutWindow, self).__init__()
         self.setWindowTitle("О программе")
