@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
+
+
+
 import time
 import vlc
 from PyQt5 import QtCore
@@ -15,6 +18,11 @@ from PyQt5.QtWidgets import (
     QLabel,
     QAction, QMessageBox, QFileDialog,
 )
+import platform
+if platform.system().lower() == "windows":
+    import os
+    os.add_dll_directory(os.getcwd() + '\module')
+
 
 from ui.form_add import Ui_Form
 from module.iamd import *
@@ -22,6 +30,7 @@ from ui.main_wnd import Ui_MainWindow
 
 from module.iamd import commands, get_config, set_player, get_player_status
 from module.database import db_add_row, db_delete_row, db_show_items, db_show_table, check_db, db_update_row
+
 
 logging.basicConfig(level=logging.ERROR)
 
