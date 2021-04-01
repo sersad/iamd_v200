@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
-
-
-
 import time
+import platform
+
+if platform.system().lower() == "windows":
+    import os
+    os.add_dll_directory(os.getcwd())
 import vlc
+
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCloseEvent
@@ -18,11 +21,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QAction, QMessageBox, QFileDialog,
 )
-import platform
-if platform.system().lower() == "windows":
-    import os
-    os.add_dll_directory(os.getcwd())
-
 
 from ui.form_add import Ui_Form
 from module.iamd import *
