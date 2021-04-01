@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
 import platform
 if platform.system().lower() == "windows":
     import os
-    os.add_dll_directory(os.getcwd() + '\module')
+    os.add_dll_directory(os.getcwd())
 
 
 from ui.form_add import Ui_Form
