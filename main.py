@@ -76,9 +76,10 @@ class AddWidget(QMainWindow, Ui_Form):
         :return:
         """
         file = QFileDialog.getOpenFileName(self, "Открыть изображение", ".")[0]
-        with open(file, 'rb') as file:
-            binary_data = file.read()
-        self.binary_image = binary_data
+        if file:
+            with open(file, 'rb') as file:
+                binary_data = file.read()
+            self.binary_image = binary_data
 
     def add_row(self) -> None:
         """
